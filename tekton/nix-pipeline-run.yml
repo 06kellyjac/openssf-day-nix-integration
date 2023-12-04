@@ -1,0 +1,14 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: sample-nix-run
+spec:
+  pipelineRef:
+    name: sample-nix
+  params:
+  - name: image
+    value: ttl.sh/testing/test:2
+  workspaces:
+  - name: shared-workspace
+    persistentvolumeclaim:
+      claimName: source-pvc

@@ -1,0 +1,40 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: sample
+spec:
+  params:
+  - name: image
+    description: reference of the image to build
+  workspaces:
+  - name: ssh-creds
+  - name: shared-workspace
+  tasks:
+  - name: fetch-source
+    taskRef:
+      name: git-clone
+    workspaces:
+    - name: ssh-directory
+      workspace: ssh-creds
+    - name: output
+      workspace: shared-workspace
+    params:
+    - name: url
+      value: git@github.com:06kellyjac/openssf-day-nix-integration.git
+    - name: deleteExisting
+      value: "true"
+
+  - name: kaniko
+    taskRef:
+      name: kaniko
+    runAfter:
+    - fetch-source
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    params:
+    - name: IMAGE
+      value: $(params.image)
+    - name: EXTRA_ARGS
+      value:
+        - --skip-tls-verify

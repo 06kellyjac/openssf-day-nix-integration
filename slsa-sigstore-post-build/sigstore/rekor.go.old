@@ -1,0 +1,47 @@
+package sigstore
+
+import (
+	"context"
+	"crypto/sha256"
+	"fmt"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/sigstore/cosign/v2/pkg/cosign"
+
+	"github.com/pkg/errors"
+	"github.com/sigstore/rekor/pkg/generated/client"
+	"github.com/sigstore/rekor/pkg/generated/models"
+	"github.com/slsa-framework/slsa-github-generator/signing"
+)
+
+type rekor struct {
+	c *client.Rekor
+}
+
+func bob() {
+	entry, err := rekorClient.UploadTlog(ctx, signer, signature, rawPayload, signer.Cert(), string(payloadFormat))
+	if err != nil {
+		logger.Warnf("error uploading entry to tlog: %v", err)
+		merr = multierror.Append(merr, err)
+	} else {
+		logger.Infof("Uploaded entry to %s with index %d", cfg.Transparency.URL, *entry.LogIndex)
+
+		extraAnnotations[ChainsTransparencyAnnotation] = fmt.Sprintf("%s/api/v1/log/entries?logIndex=%d", cfg.Transparency.URL, *entry.LogIndex)
+	}
+}
+
+func (r *rekor) UploadTlog(ctx context.Context, signer signing.Signer, signature, rawPayload []byte, cert, payloadFormat string) (*models.LogEntryAnon, error) {
+	pkoc, err := publicKeyOrCert(signer, cert)
+	if err != nil {
+		return nil, errors.Wrap(err, "public key or cert")
+	}
+	// if _, ok := formats.IntotoAttestationSet[config.PayloadType(payloadFormat)]; ok {
+	return cosign.TLogUploadInTotoAttestation(ctx, r.c, signature, pkoc)
+	// }
+
+	h := sha256.New()
+	if _, err := h.Write(rawPayload); err != nil {
+		return nil, errors.Wrap(err, "error checksuming payload")
+	}
+	return cosign.TLogUpload(ctx, r.c, signature, h, pkoc)
+}

@@ -1,0 +1,8 @@
+*.qcow2
+/result*
+.direnv
+/extras
+*.pub
+*.key
+*.csv
+*.log

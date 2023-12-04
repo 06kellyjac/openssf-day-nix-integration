@@ -1,0 +1,53 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: nix
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Image Build
+    tekton.dev/tags: image-build
+    tekton.dev/displayName: "Build and upload container image using nix & skopeo"
+    tekton.dev/platforms: "linux/amd64,linux/arm64,linux/ppc64le"
+spec:
+  params:
+    - name: IMAGE_NAME
+  workspaces:
+    - name: source
+      description: Holds the source
+  results:
+    - name: IMAGE_DIGEST
+      description: Digest of the image just built.
+    - name: IMAGE_URL
+      description: URL of the image just built.
+  volumes:
+  - name: share
+    emptyDir: {}
+  steps:
+    - name: build-and-push
+      workingDir: $(workspaces.source.path)
+      image: nixos/nix
+      script: |
+        nix build \
+          --extra-experimental-features "nix-command flakes" \
+          --print-build-logs \
+          .#hello-container
+        cp ./result /share/image.tar.gz
+    - name: skopeo-copy
+      env:
+      - name: HOME
+        value: /tekton/home
+      - name: IMAGE_NAME
+        value: $(params.IMAGE_NAME)
+      image: quay.io/skopeo/stable:v1
+      volumeMounts:
+      - mountPath: /share
+        name: share
+      script: |
+        skopeo copy docker-archive:/share/image.tar.gz "docker://$IMAGE_NAME"
+        echo "ttl.sh/testing/$IMAGE_NAME" > $(results.IMAGE_NAME.path)
+        skopeo manifest-digest ./result > $(results.IMAGE_DIGEST.path)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532

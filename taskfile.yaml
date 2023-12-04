@@ -1,0 +1,74 @@
+version: "3"
+
+tasks:
+  thing:
+    run: once
+    preconditions:
+      - sh: '[ $IS_IN_DEVSHELL = 1 ]'
+        msg: "Already in devshell"
+    cmds:
+      - echo $IS_IN_DEVSHELL
+
+  delete-k3d:
+    run: once
+    cmds:
+      - k3d cluster delete
+
+  launch-k3d:
+    run: once
+    cmds:
+      - k3d cluster create --network host --image rancher/k3s:v1.27.8-rc1-k3s1
+
+  apply-pipelines:
+    run: once
+    cmds:
+      - kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.54.0/release.yaml
+
+  check-pipelines:
+    run: once
+    cmds:
+      - kubectl get deploy --namespace tekton-pipelines
+
+  apply-chains:
+    run: once
+    cmds:
+      - kubectl apply -f https://storage.googleapis.com/tekton-releases/chains/previous/v0.19.0/release.yaml
+
+  check-chains:
+    run: once
+    cmds:
+      - kubectl get deploy --namespace tekton-chains
+
+  prep-ci:
+    run: once
+    cmds:
+      - kubectl apply -f https://api.hub.tekton.dev/v1/resource/tekton/task/git-clone/0.9/raw
+      - kubectl apply -f https://api.hub.tekton.dev/v1/resource/tekton/task/kaniko/0.6/raw
+      - kubectl apply -f ./tekton/pipeline.yaml
+
+  add-key:
+    run: once
+    cmds:
+      - |
+        kubectl create secret generic signing-secrets -n tekton-chains \
+          --from-literal="cosign.key=$(cat cosign.key)" \
+          --from-literal="cosign.password=" \
+          --from-literal="cosign.pub=$(cat cosign.pub)"
+
+# prepare-cluster:
+
+# cosign generate-key-pair k8s://tekton-chains/signing-secrets
+# cosign generate-key-pair # local
+
+# cosign sign-blob --key ./cosign.key --output-signature=result.sig --fulcio-url="" --rekor-url=http://localhost:3000 file
+# cosign verify-blob --key ./cosign.key --signature=result.sig --rekor-url=http://localhost:3000 file
+# cosign sign-blob --key ./cosign.key --fulcio-url="http://localhost:5555" --rekor-url=http://localhost:3000 file
+# kubectl create secret generic deploy-key --from-literal="id_rsa=$(cat extras/repo-access/deploy_key_ed25519)"
+# --port=5555
+# cosign sign --key ./cosign.key --fulcio-url="http://localhost:5555" --rekor-url=http://localhost:3000 IMAGE
+
+# cosign sign --key ./cosign.key --fulcio-url="http://localhost:5555" --rekor-url=http://localhost:3000 ttl.sh/alpine/alpine:1m@sha256:d695c3de6fcd8cfe3a6222b0358425d40adfd129a8a47c3416faff1a8aece389
+# cosign verify --key ./cosign.pub --rekor-url=http://localhost:3000 ttl.sh/alpine/alpine:1m@sha256:d695c3de6fcd8cfe3a6222b0358425d40adfd129a8a47c3416faff1a8aece389
+
+# kubectl apply -f https://raw.githubusercontent.com/tektoncd/catalog/main/task/git-clone/0.9/git-clone.yaml
+# kubectl apply -f https://api.hub.tekton.dev/v1/resource/tekton/task/kaniko/0.6/raw
