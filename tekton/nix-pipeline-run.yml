@@ -7,8 +7,11 @@ spec:
     name: sample-nix
   params:
   - name: image
-    value: ttl.sh/testing/test:2
+    value: ttl.sh/testing/test:nix
   workspaces:
   - name: shared-workspace
     persistentvolumeclaim:
       claimName: source-pvc
+  - name: ssh-creds
+    secret:
+      secretName: deploy-key

@@ -42,6 +42,7 @@ tasks:
   prep-ci:
     run: once
     cmds:
+        # https://github.com/tektoncd/catalog/issues/1169
       - kubectl apply -f https://api.hub.tekton.dev/v1/resource/tekton/task/git-clone/0.9/raw
       - kubectl apply -f https://api.hub.tekton.dev/v1/resource/tekton/task/kaniko/0.6/raw
       - kubectl apply -f ./tekton/pipeline.yaml
@@ -55,6 +56,11 @@ tasks:
           --from-literal="cosign.password=" \
           --from-literal="cosign.pub=$(cat cosign.pub)"
 
+# kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.format": "slsa/v1"}}'
+# kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.taskrun.storage": "oci"}}'
+# kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"artifacts.oci.storage": "tekton,oci"}}'
+# kubectl patch configmap chains-config -n tekton-chains -p='{"data":{"transparency.enabled": "true"}}'
+
 # prepare-cluster:
 
 # cosign generate-key-pair k8s://tekton-chains/signing-secrets
@@ -63,7 +69,7 @@ tasks:
 # cosign sign-blob --key ./cosign.key --output-signature=result.sig --fulcio-url="" --rekor-url=http://localhost:3000 file
 # cosign verify-blob --key ./cosign.key --signature=result.sig --rekor-url=http://localhost:3000 file
 # cosign sign-blob --key ./cosign.key --fulcio-url="http://localhost:5555" --rekor-url=http://localhost:3000 file
-# kubectl create secret generic deploy-key --from-literal="id_rsa=$(cat extras/repo-access/deploy_key_ed25519)"
+# kubectl create secret generic deploy-key --from-file=id_ed25519=./extras/repo-access/deploy_key_ed25519
 # --port=5555
 # cosign sign --key ./cosign.key --fulcio-url="http://localhost:5555" --rekor-url=http://localhost:3000 IMAGE
 

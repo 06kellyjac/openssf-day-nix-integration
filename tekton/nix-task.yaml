@@ -27,13 +27,16 @@ spec:
   steps:
     - name: build-and-push
       workingDir: $(workspaces.source.path)
-      image: nixos/nix
+      image: nixos/nix:2.19.2
       script: |
         nix build \
           --extra-experimental-features "nix-command flakes" \
           --print-build-logs \
           .#hello-container
         cp ./result /share/image.tar.gz
+      volumeMounts:
+      - mountPath: /share
+        name: share
     - name: skopeo-copy
       env:
       - name: HOME
@@ -46,8 +49,9 @@ spec:
         name: share
       script: |
         skopeo copy docker-archive:/share/image.tar.gz "docker://$IMAGE_NAME"
-        echo "ttl.sh/testing/$IMAGE_NAME" > $(results.IMAGE_NAME.path)
-        skopeo manifest-digest ./result > $(results.IMAGE_DIGEST.path)
+        echo -n "$IMAGE_NAME" > $(results.IMAGE_URL.path)
+        skopeo inspect docker://$IMAGE_NAME --format "{{ .Digest }}" | tr -d '\n' > $(results.IMAGE_DIGEST.path)
+        # skopeo manifest-digest /share/image.tar.gz > $(results.IMAGE_DIGEST.path)
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532

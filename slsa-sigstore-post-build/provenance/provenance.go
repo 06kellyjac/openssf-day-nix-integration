@@ -165,7 +165,7 @@ func genSubject(pb nix.PostBuild) []intoto.Subject {
 
 		eg.Go(func() error {
 			// TODO: get nar location from narinfo
-			nixHash := nixHashRegexp.FindString(pi.Path)
+			nixHash := NixHashRegexp.FindString(pi.Path)
 			b32, err := nix.SRITo32(pi.NarHash)
 			if err != nil {
 				return err

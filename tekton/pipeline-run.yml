@@ -7,8 +7,11 @@ spec:
     name: sample
   params:
   - name: image
-    value: ttl.sh/testing/test:2
+    value: ttl.sh/ttttesting/test:kaniko
   workspaces:
   - name: shared-workspace
     persistentvolumeclaim:
       claimName: source-pvc
+  - name: ssh-creds
+    secret:
+      secretName: deploy-key

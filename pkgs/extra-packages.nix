@@ -27,5 +27,5 @@ rec {
     url = "https://gist.githubusercontent.com/06kellyjac/8f5ebbed9af05263eec5403b046b66f3/raw/0f124b34a2d848ca1ca992c82424eab1a707bef9/hello-world";
     hash = "sha256-Ssq7L3CJPujOEPJo4wkpP5QQ1Y2+U/Hb2X4X9Lo5pqY=";
   };
-  test-combined = pkgs.symlinkJoin { name = "test-combined"; paths = [ test-a test-b test-c test-d ]; postBuild = "echo finished all"; };
+  # test-combined = pkgs.symlinkJoin { name = "test-combined"; paths = [ test-a test-b test-c test-d ]; postBuild = "echo finished all"; };
 }
